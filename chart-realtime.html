@@ -1,0 +1,169 @@
+<html>
+	<head>
+		<script src="d3.v4.min.js">	</script>
+
+		<style>
+		.x-axis {
+		  stroke: black;
+		}
+
+		.y-axis {
+		  stroke: black;
+		}
+		</style>
+
+	</head>
+
+<body>
+
+<svg> </svg>
+
+<script>
+
+var width = 1000;
+var height= 400;
+
+var stats = [
+  {id:1, startTime: new Date("2016-10-23T10:00:00"), endTime: new Date("2016-10-23T10:05:00"), ypos: 1},
+  {id:2, startTime: new Date("2016-10-23T10:10:00"), endTime: new Date("2016-10-23T10:18:00"), ypos: 2},
+  {id:3, startTime: new Date("2016-10-23T10:20:00"), endTime: new Date("2016-10-23T10:25:00"), ypos: 3},
+  {id:4, startTime: new Date("2016-10-23T10:30:00"), endTime: new Date("2016-10-23T10:45:00"), ypos: 1},
+  {id:5, startTime: new Date("2016-10-23T10:40:00"), endTime: new Date("2016-10-23T10:48:00"), ypos: 2},
+  {id:6, startTime: new Date("2016-10-23T10:50:00"), endTime: new Date("2016-10-23T10:55:00"), ypos: 3}
+];
+
+//base chart svg 
+var svg = d3.select('svg').attr("width", width).attr("height", height);
+
+var x = createXScale();
+var xAxisSvg = createXAxis();
+
+var y = d3.scaleLinear().domain([1, 10]).range([300, 1]);
+var transitionDuration = 2000;
+
+function createXScale()
+{
+	first = new Date(stats[stats.length-1].startTime.getTime()-60*60*1000)
+	last = new Date(stats[stats.length-1].startTime.getTime());
+
+	return d3.scaleTime().domain([first, last]).range([0, 1000]);
+}
+
+
+function createXAxis()
+{
+	var xAxisSvg = svg.append("g")
+	.attr("transform", "translate(0," + (height-20) + ")")
+	.attr("class","x axis")
+    .call(d3.axisBottom(x));
+	
+	return xAxisSvg;
+}
+
+
+function createChart()
+{			
+	var bars = svg.selectAll('rect').data(stats, function(d, i) {
+		return d.id;
+	  });
+
+	bars
+	.enter().append('rect')
+	  .attr('x', function(d, i) {
+		return x(d.startTime);
+	  })
+	  .attr('y', function(d,i) {
+	  return y(d.ypos);
+	  })
+	  .attr('height', function(d) {
+		return 24;
+	  })
+	  .attr('width', function(d) {
+		return x(d.endTime) - x(d.startTime);
+	  })
+	  .style("fill-opacity", 0)
+	  .transition()
+	  .ease(d3.easeElastic)
+	  .duration(transitionDuration)
+      .style("fill-opacity", 1);
+	  
+	
+	bars
+	.transition()
+	  .ease(d3.easeLinear)
+	  .duration(transitionDuration)
+	  .attr('x', function(d, i) {
+		return x(d.startTime);
+	  })
+	  .attr('y', function(d,i) {
+	  return y(d.ypos);
+	  })
+	  .attr('height', function(d) {
+		return 24;
+	  })
+	  .attr('width', function(d) {
+		return x(d.endTime) - x(d.startTime);
+	  });
+
+	  
+	  bars.exit()
+	  .transition()
+	  .attr('width',0)
+	  .ease(d3.easeLinear)
+	  .remove();
+}
+
+
+function addMoreStatsToChart()
+{		
+	// Shift domain
+	x = createXScale(stats);
+
+	// Slide x-axis left		
+	xAxisSvg.transition()
+        .ease(d3.easeLinear)
+		.duration(transitionDuration)
+        .call(d3.axisBottom(x))
+		
+	createChart();	  
+	
+ }
+ 
+ 
+function getDuration(d){return (d.endTime.getTime()-d.startTime.getTime())/1000;}   
+
+function simulate()
+{
+	duration = Math.random() * 20 * 60 * 1000;
+	lastStat = stats[stats.length-1];
+	nextId = lastStat.id + 1;
+	nextStartTime = new Date(lastStat.startTime.getTime() + 10*60*1000);
+	nextEndTime = new Date(nextStartTime.getTime() + duration);
+	nextYpos = (lastStat.ypos+1)%10;
+	
+	//stats.shift();
+	
+	stats.push(
+	{
+		id:nextId,
+		startTime: nextStartTime, 
+		endTime: nextEndTime,
+		ypos: nextYpos
+	});
+
+}
+
+createChart(stats); 
+
+d3.interval(function() {
+	simulate()
+	addMoreStatsToChart();
+	
+}, transitionDuration);
+
+
+</script>
+
+
+	</body>
+</html>
